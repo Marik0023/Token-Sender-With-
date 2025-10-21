@@ -1,0 +1,72 @@
+name: Activity Bot
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"   # двічі на день
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  simulate_activity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up git
+        run: |
+          git config --global user.name "Marik0023"
+          git config --global user.email "breykerr42@gmail.com"
+
+      - name: Make random change
+        run: |
+          echo "$(date -u) simulated activity $RANDOM" >> journal.md
+          git add journal.md
+          git commit -m "Chore: daily update" || echo "no changes"
+          git push
+
+      - name: Maybe create Issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          # 50% шанс створити issue
+          if [ $((RANDOM % 2)) -eq 0 ]; then
+            TITLE="Auto issue $(date +'%H:%M:%S')"
+            BODY="Daily test issue created by workflow."
+            curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                 -H "Accept: application/vnd.github+json" \
+                 https://api.github.com/repos/${REPO}/issues \
+                 -d "{\"title\": \"$TITLE\", \"body\": \"$BODY\"}"
+            echo "Created issue: $TITLE"
+          else
+            echo "No issue today"
+          fi
+
+      - name: Maybe create Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          # 30% шанс створити pull request
+          if [ $((RANDOM % 10)) -lt 3 ]; then
+            BRANCH="auto-pr-$(date +'%Y%m%d%H%M%S')"
+            git checkout -b $BRANCH
+            echo "$(date -u) new PR line $RANDOM" >> journal.md
+            git add journal.md
+            git commit -m "PR: small update"
+            git push origin $BRANCH
+            TITLE="Auto PR $(date +'%H:%M:%S')"
+            BODY="This is an automatically generated pull request."
+            curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                 -H "Accept: application/vnd.github+json" \
+                 https://api.github.com/repos/${REPO}/pulls \
+                 -d "{\"title\": \"$TITLE\", \"body\": \"$BODY\", \"head\": \"$BRANCH\", \"base\": \"main\"}"
+            echo "Created pull request: $TITLE"
+          else
+            echo "No PR this run"
+          fi
