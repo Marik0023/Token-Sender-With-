@@ -35,7 +35,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           # 50% шанс створити issue
-          if [ $((RANDOM % 2)) -eq 0 ]; then
+          if [ $((RANDOM % 20)) -eq 0 ]; then
             TITLE="Auto issue $(date +'%H:%M:%S')"
             BODY="Daily test issue created by workflow."
             curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
@@ -53,7 +53,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           # 30% шанс створити pull request
-          if [ $((RANDOM % 10)) -lt 3 ]; then
+          if [ $((RANDOM % 80)) -lt 3 ]; then
             BRANCH="auto-pr-$(date +'%Y%m%d%H%M%S')"
             git checkout -b $BRANCH
             echo "$(date -u) new PR line $RANDOM" >> journal.md
